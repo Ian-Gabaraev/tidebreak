@@ -1,0 +1,11 @@
+requests>=2.33.0
+feedparser>=6.0.10
+pytest>=7.0
+pytest-cov>=4.0
+pytest-mock>=3.10
+responses>=0.23.0
+black>=23.0
+ruff>=0.1.0
+mypy>=1.0
+types-requests>=2.28.0
+
