@@ -84,6 +84,3 @@ warn_no_return = true
 testpaths = ["tests"]
 addopts = "--cov=tidebreak --cov-report=html --cov-report=term-missing"
 python_files = ["test_*.py"]
-
-
-

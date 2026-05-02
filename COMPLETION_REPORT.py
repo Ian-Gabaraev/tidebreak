@@ -110,58 +110,62 @@ HIGHLIGHTS = {
 # ✅ VERIFICATION
 # ==============================================================================
 
+
 def verify_installation():
     """Verify the wheel works correctly."""
     from tidebreak import get_news_by_country
+
     result = get_news_by_country("US")
     print(f"✓ Wheel works! Got {len(result.articles)} articles from {result.country_name}")
 
+
 if __name__ == "__main__":
     import json
-    
-    print("\n" + "="*80)
+
+    print("\n" + "=" * 80)
     print("TIDEBREAK - COMPLETION REPORT")
-    print("="*80 + "\n")
-    
+    print("=" * 80 + "\n")
+
     print("📦 CORE MODULES:")
     for file, desc in CORE_MODULES.items():
         print(f"  ✓ {file:35} - {desc}")
-    
+
     print("\n🧪 TEST SUITE:")
     for file, desc in TEST_SUITE.items():
         print(f"  ✓ {file:35} - {desc}")
-    
+
     print("\n📦 DISTRIBUTIONS:")
     for file, desc in DISTRIBUTIONS.items():
         print(f"  ✓ {file:35} - {desc}")
-    
+
     print("\n📚 DOCUMENTATION:")
     for file, desc in DOCUMENTATION.items():
         print(f"  ✓ {file:35} - {desc}")
-    
+
     print("\n✅ REQUIREMENTS STATUS:")
     all_met = all(status for _, status in REQUIREMENTS)
     for req, status in REQUIREMENTS:
         print(f"  {'✓' if status else '✗'} {req}")
-    
+
     print("\n📊 QUALITY METRICS:")
     for metric, value in QUALITY.items():
         print(f"  • {metric:25} : {value}")
-    
+
     print("\n🎯 KEY FEATURES:")
     for feature in FEATURES:
         print(f"  ✓ {feature}")
-    
+
     print("\n🔧 IMPLEMENTATION HIGHLIGHTS:")
     for aspect, description in HIGHLIGHTS.items():
         print(f"  • {aspect:20} : {description}")
-    
-    print("\n" + "="*80)
+
+    print("\n" + "=" * 80)
     print("STATUS: ✅ PRODUCTION READY")
-    print("="*80 + "\n")
-    
+    print("=" * 80 + "\n")
+
     print("To install and use:")
     print("  $ pip install dist/tidebreak-0.1.0-py3-none-any.whl")
-    print("  $ python -c \"from tidebreak import get_news_by_country; result = get_news_by_country('US'); print(result)\"")
+    print(
+        "  $ python -c \"from tidebreak import get_news_by_country; result = get_news_by_country('US'); print(result)\""
+    )
     print()
-
