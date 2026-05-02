@@ -319,6 +319,58 @@ Development progress and decisions for the Tidebreak project.
 
 **Status**: ✅ Reported duplicate leakage case resolved
 
+#### Session 14: Flask App ORM Migration (COMPLETED ✓)
+
+**Goal:** Use an ORM in the Flask app database layer while keeping `tidebreak` as dependency-only package.
+
+**Code Changes (Flask app only):**
+- Replaced raw `sqlite3` storage in `apps/flask_api/app/storage.py` with SQLAlchemy ORM:
+  - `RequestLog` declarative model
+  - `ORMStorage` engine/session implementation
+- Updated app factory wiring in `apps/flask_api/app/__init__.py` to use `ORMStorage`
+- Added SQLAlchemy dependency in `apps/flask_api/requirements.txt`
+- Added ORM storage test: `apps/flask_api/tests/test_storage.py`
+
+**Verification:**
+- Flask tests: **3 passed**
+- Core package tests: **34 passed, 2 skipped**
+- Confirmed no raw SQL usage remains in Flask storage implementation
+
+**Status**: ✅ ORM now powers Flask persistence; `tidebreak` package remains unchanged as dependency
+
+#### Session 15: ORM Source Map + Article Backup Tables (COMPLETED ✓)
+
+**Goal:** Persist country/source mapping and store exact API article payloads as backup.
+
+**Code Changes (Flask app only):**
+- Extended `apps/flask_api/app/storage.py` with ORM models:
+  - `CountrySourceMap` (`country_source_map` table)
+  - `ArticleBackup` (`article_backup` table)
+- Added ORM methods:
+  - `seed_country_sources()`
+  - `get_country_sources(country_code)`
+  - `store_article_backup(country_code, articles)`
+  - `get_article_backup(country_code)`
+- Updated app factory (`apps/flask_api/app/__init__.py`) to seed source mappings at startup
+- Updated route (`apps/flask_api/app/routes.py`) to persist successful article payloads and fallback to backups when fresh pull is empty
+
+**Data Contract for Backups:**
+- Backup rows persist exact API fields:
+  - `ID`
+  - `Title`
+  - `URL`
+  - `Source Name`
+  - `Summary`
+
+**Testing & Verification:**
+- Added/updated Flask tests:
+  - `apps/flask_api/tests/test_storage.py` (source seeding + backup roundtrip)
+  - `apps/flask_api/tests/test_api.py` (backup fallback path)
+- Flask tests: **6 passed**
+- Core package tests unchanged: **34 passed, 2 skipped**
+
+**Status**: ✅ Flask ORM now persists source mappings and exact API payload backups
+
 ## Completed Features
 
 - [x] Wheel distribution packaging

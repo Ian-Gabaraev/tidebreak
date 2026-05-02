@@ -34,16 +34,39 @@ def get_articles(country_code: str):
     if hasattr(articles, "articles"):
         articles = [
             {
-                "id": f"{normalized_code}-{idx}",
-                "title": item.title,
-                "url": item.link,
-                "sourceName": item.source or "unknown",
-                "summary": item.summary,
+                "ID": f"{normalized_code}-{idx}",
+                "Title": item.title,
+                "URL": item.link,
+                "Source Name": item.source or "unknown",
+                "Summary": item.summary,
             }
             for idx, item in enumerate(articles.articles, start=1)
         ]
+
+    if articles:
+        storage.store_article_backup(normalized_code, articles)
+    else:
+        backup_articles = storage.get_article_backup(normalized_code)
+        if backup_articles:
+            articles = backup_articles
 
     cache.set_json(cache_key, articles)
     storage.log_request(normalized_code, len(articles), from_cache=False)
 
     return jsonify(articles), 200
+
+
+@api_bp.get("/sources/<country_code>")
+def get_sources(country_code: str):
+    normalized_code = country_code.upper().strip()
+    if not _COUNTRY_CODE_RE.fullmatch(normalized_code):
+        return (
+            jsonify({"error": "Invalid country code. Use ISO-3166 alpha-2 format, e.g. VN."}),
+            400,
+        )
+
+    storage = current_app.extensions["storage"]
+    sources = storage.get_country_sources(normalized_code)
+
+    return jsonify({"country_code": normalized_code, "sources": sources}), 200
+

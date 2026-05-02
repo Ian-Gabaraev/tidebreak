@@ -2,6 +2,13 @@
 
 A standalone Flask service that wraps `tidebreak` and exposes country-based article retrieval.
 
+It uses SQLAlchemy ORM with SQLite for persistence and Redis for response caching.
+
+ORM tables:
+- `request_log` (request audit)
+- `country_source_map` (persisted mapping of country -> source URLs)
+- `article_backup` (last successful API payload per country, used as fallback)
+
 ## API
 
 - `GET /health`

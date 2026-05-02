@@ -196,3 +196,15 @@ project/
 - Added lead-token and overlap heuristic to catch close variants with minor wording changes
 - Added regression test using the reported Vietnam IP-protection duplicate pair
 
+### Session 14 (May 2, 2026) — Flask ORM Migration
+- Migrated Flask app storage from raw `sqlite3` statements to SQLAlchemy ORM
+- Added `RequestLog` declarative model and session-based persistence layer
+- Kept existing route/storage interface stable while swapping implementation
+- Added ORM storage tests and fixed SQLite connection lifecycle warnings
+
+### Session 15 (May 2, 2026) — ORM Source Mapping + Backup Tables
+- Added `country_source_map` ORM table to persist country-to-source URL mappings
+- Added `article_backup` ORM table storing exact API response fields (`ID`, `Title`, `URL`, `Source Name`, `Summary`)
+- Seeded source map from `tidebreak.country_mappings` at Flask app startup
+- Implemented backup fallback in API route when fresh pull returns no articles
+
