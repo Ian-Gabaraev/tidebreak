@@ -30,4 +30,3 @@ def serialize_articles(articles: list[Article], country_code: str) -> list[dict[
         serialize_article(article=article, country_code=country_code, index=index)
         for index, article in enumerate(articles, start=1)
     ]
-

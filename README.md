@@ -12,6 +12,45 @@ A Python wheel package that aggregates news articles by country code. Simply pro
 - Returns up to 5 articles with titles, links, and summaries
 - Graceful error handling with partial failures
 
+## How Duplicate Detection Works
+
+News syndication means the same story can appear across multiple outlets with slightly different wording. Tidebreak runs a deduplication pass before returning the final list.
+
+### 1) Text normalization
+
+Before comparing titles, Tidebreak normalizes them by:
+- lowercasing
+- removing punctuation
+- collapsing extra whitespace
+
+This makes small formatting differences compare correctly.
+
+### 2) Exact duplicate check
+
+If two normalized titles are exactly the same, they are considered duplicates.
+
+### 3) Near-duplicate check
+
+If titles are not exact matches, Tidebreak applies similarity heuristics:
+- token overlap ratio (shared important words)
+- Jaccard similarity (shared words vs total unique words)
+- sequence similarity (overall string closeness)
+- leading phrase match (same first few words) for syndicated paraphrases
+
+This catches cases like:
+- "Vietnam requests US to deliver objective, balanced assessment..."
+- "Vietnam requests US to make objective assessment..."
+
+### 4) Stable retention rule
+
+When duplicates are found, Tidebreak keeps the first seen article and drops later duplicates. This keeps output deterministic and avoids noisy repeats.
+
+### Notes
+
+- Deduplication runs before the final top-5 trim.
+- It is title-based, which works well for syndicated headlines.
+- Very aggressive dedupe can hide legitimately distinct but similar stories; thresholds are tuned to balance that risk.
+
 ## Installation
 
 ```bash
@@ -67,6 +106,16 @@ tidebreak/
 ## Development
 
 See **SKILLS.md**, **PROJECT_LOG.md**, and **REFERENCES.md** for development notes.
+
+## Flask API Service
+
+A separate Flask API service is available in `apps/flask_api`.
+
+- Endpoint: `GET /api/v1/articles/<country_code>`
+- Stack: Gunicorn + Redis cache + SQLite request logging
+- Dockerized via root `docker-compose.yml`
+
+See `apps/flask_api/README.md` for run and smoke-test commands.
 
 ## Testing
 

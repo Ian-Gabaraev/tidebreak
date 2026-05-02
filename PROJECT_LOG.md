@@ -244,6 +244,81 @@ Development progress and decisions for the Tidebreak project.
 
 **Status**: ✅ Live pull checks now exist and pass for VN/TH in current environment
 
+#### Session 11: Thailand English + No-HTML Enforcement (COMPLETED ✓)
+
+**Goal:** Ensure TH output is English-only and contains no raw HTML snippets.
+
+**Code Changes:**
+- Updated TH source list in `src/tidebreak/country_mappings.py` to remove lower-quality source and keep English-focused endpoints
+- Added TH post-parse content rules in `src/tidebreak/fetchers.py`:
+  - HTML stripping for titles/summaries
+  - English-likeness check
+  - Cyrillic/Thai script rejection
+- Applied TH filtering for both RSS and HTML dispatch paths
+
+**Testing & Verification:**
+- Added TH RSS regression test to ensure non-English entries are filtered and HTML tags are removed
+- Tightened live TH test assertions to reject HTML and forbidden scripts
+- Full suite result: **33 passed, 2 skipped**
+- Live strict TH test result: **1 passed**
+
+**Status**: ✅ TH output now enforced as plain-text English-like data
+
+#### Session 12: Flask API Service + Dockerization (COMPLETED ✓)
+
+**Goal:** Build a separate Flask app in-repo that uses `tidebreak` as wheel dependency and runs with Gunicorn, Redis, and SQLite.
+
+**Scaffold Created:**
+- `apps/flask_api/app/__init__.py` (app factory)
+- `apps/flask_api/app/routes.py` (`GET /api/v1/articles/<country_code>`)
+- `apps/flask_api/app/cache.py` (Redis cache wrapper)
+- `apps/flask_api/app/storage.py` (SQLite request logs)
+- `apps/flask_api/app/config.py` (runtime config)
+- `apps/flask_api/wsgi.py` (Gunicorn entrypoint)
+- `apps/flask_api/gunicorn.conf.py`
+- `apps/flask_api/requirements.txt`
+- `apps/flask_api/tests/test_api.py`
+- `apps/flask_api/README.md`
+- Root `docker-compose.yml` (`api` + `redis`)
+
+**Dependency Strategy:**
+- Built fresh wheel: `dist/tidebreak-0.1.0-py3-none-any.whl`
+- Docker image installs `tidebreak` from the local wheel file
+
+**Docker/Runtime Verification:**
+- Compose build and startup succeeded after resolving host-port conflicts (mapped API host port to `8001`)
+- Smoke tested endpoints:
+  - `GET /health` -> `{"status":"ok"}`
+  - `GET /api/v1/articles/VN` -> JSON array of real article objects
+  - `GET /api/v1/articles/TH` -> JSON array of real article objects
+- Stack shutdown verified with `docker compose down`
+
+**Tests Run:**
+- Flask app tests: **2 passed** (`apps/flask_api/tests/test_api.py`)
+- Existing suite still green: **33 passed, 2 skipped**
+
+**Status**: ✅ Separate Flask API stack scaffolded, dockerized, and locally validated
+
+#### Session 13: Duplicate Regression Fix for VN Paraphrase Pair (COMPLETED ✓)
+
+**Goal:** Prevent very close duplicate stories with slightly different wording from passing dedupe.
+
+**Code Changes:**
+- Updated `_is_near_duplicate_title(...)` in `src/tidebreak/aggregator.py`
+- Added lead-token + token-overlap heuristic for syndicated paraphrase detection
+
+**Regression Coverage:**
+- Added test in `tests/test_aggregator.py` using reported pair:
+  - "Vietnam requests US to deliver objective, balanced assessment of IP protection efforts"
+  - "Vietnam requests US to make objective assessment of IP rights protection efforts"
+
+**Verification:**
+- Aggregator tests: **7 passed**
+- Full suite: **34 passed, 2 skipped**
+- Direct function check for reported pair now returns `True` for near-duplicate matching
+
+**Status**: ✅ Reported duplicate leakage case resolved
+
 ## Completed Features
 
 - [x] Wheel distribution packaging

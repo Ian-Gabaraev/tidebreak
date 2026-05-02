@@ -22,9 +22,9 @@ def test_get_news_by_country_valid_code():
                 source="https://example.com/feed",
             )
         ]
-        
+
         result = get_news_by_country("US")
-        
+
         assert isinstance(result, list)
         assert len(result) >= 1
         assert set(result[0].keys()) == {"ID", "Title", "URL", "Source Name", "Summary"}
@@ -41,7 +41,7 @@ def test_get_news_by_country_no_sources():
     """Test country with no configured news sources."""
     # This would be for a country in the mapping but with no sources
     result = get_news_by_country("ET")  # Ethiopia has no sources configured
-    
+
     assert result == []
 
 
@@ -49,11 +49,11 @@ def test_get_news_by_country_fetch_error():
     """Test handling of fetch errors."""
     with patch("tidebreak.aggregator.fetch_articles_from_source") as mock_fetch:
         from tidebreak.exceptions import FetchError
-        
+
         mock_fetch.side_effect = FetchError("Network error")
-        
+
         result = get_news_by_country("US")
-        
+
         assert result == []
 
 
@@ -125,3 +125,35 @@ def test_get_news_by_country_deduplicates_near_duplicate_titles():
         assert result[0]["URL"] == "https://site-a.example/story-1"
 
 
+def test_get_news_by_country_deduplicates_reported_vietnam_ip_titles():
+    """Regression test for user-reported VN duplicate pair with paraphrased wording."""
+    source_a = "https://en.vietnamplus.vn/"
+    source_b = "https://news.tuoitre.vn/"
+
+    with (
+        patch("tidebreak.aggregator.random.sample", return_value=[source_a, source_b]),
+        patch("tidebreak.aggregator.fetch_articles_from_source") as mock_fetch,
+    ):
+        mock_fetch.side_effect = [
+            [
+                Article(
+                    title="Vietnam requests US to deliver objective, balanced assessment of IP protection efforts",
+                    link="https://en.vietnamplus.vn/vietnam-requests-us-to-deliver-objective-balanced-assessment-of-ip-protection-efforts-post342060.vnp",
+                    summary="Summary A",
+                    source=source_a,
+                )
+            ],
+            [
+                Article(
+                    title="Vietnam requests US to make objective assessment of IP rights protection efforts",
+                    link="https://news.tuoitre.vn/vietnam-requests-us-to-make-objective-assessment-of-ip-rights-protection-efforts-103260502141352372.htm",
+                    summary="Summary B",
+                    source=source_b,
+                )
+            ],
+        ]
+
+        result = get_news_by_country("VN", num_sources=2)
+
+        assert len(result) == 1
+        assert result[0]["URL"].startswith("https://en.vietnamplus.vn/")

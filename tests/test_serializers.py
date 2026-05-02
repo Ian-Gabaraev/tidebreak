@@ -38,4 +38,3 @@ def test_serialize_articles_assigns_incrementing_ids():
     assert payload[0]["ID"] == "US-1"
     assert payload[1]["ID"] == "US-2"
     assert set(payload[0].keys()) == {"ID", "Title", "URL", "Source Name", "Summary"}
-

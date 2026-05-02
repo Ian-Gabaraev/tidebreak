@@ -48,10 +48,10 @@ def test_get_news_sources_thailand():
     sources = get_news_sources("TH")
     assert len(sources) == 5
     assert "https://www.nationthailand.com/" in sources
-    assert "https://www.nationthailand.com/news" in sources
+    assert "https://www.nationthailand.com/thailand" in sources
     assert "https://world.thaipbs.or.th/feed/" in sources
     assert "https://thethaiger.com/feed/" in sources
-    assert "https://www.pattayamail.com/feed/" in sources
+    assert "https://khaosodenglish.com/feed/" in sources
 
 
 def test_get_news_sources_no_sources():
@@ -79,9 +79,8 @@ def test_is_valid_country_code():
 def test_get_all_supported_countries():
     """Test getting all supported countries."""
     countries = get_all_supported_countries()
-    
+
     assert isinstance(countries, dict)
     assert "US" in countries
     assert "GB" in countries
     assert len(countries) > 50  # Should have many countries
-

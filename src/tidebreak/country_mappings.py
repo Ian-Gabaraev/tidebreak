@@ -128,10 +128,10 @@ _COUNTRY_NEWS_SOURCES: dict[str, list[str]] = {
     ],
     "TH": [
         "https://www.nationthailand.com/",
-        "https://www.nationthailand.com/news",
+        "https://www.nationthailand.com/thailand",
         "https://world.thaipbs.or.th/feed/",
         "https://thethaiger.com/feed/",
-        "https://www.pattayamail.com/feed/",
+        "https://khaosodenglish.com/feed/",
     ],
 }
 
@@ -139,13 +139,13 @@ _COUNTRY_NEWS_SOURCES: dict[str, list[str]] = {
 def get_country_name(country_code: str) -> str:
     """
     Get country name from country code.
-    
+
     Args:
         country_code: ISO 3166-1 Alpha-2 country code
-        
+
     Returns:
         Country name
-        
+
     Raises:
         ValueError: If country code is not found
     """
@@ -157,19 +157,19 @@ def get_country_name(country_code: str) -> str:
 def get_news_sources(country_code: str) -> list[str]:
     """
     Get news sources for a country.
-    
+
     Args:
         country_code: ISO 3166-1 Alpha-2 country code
-        
+
     Returns:
         List of news source URLs for the country
-        
+
     Raises:
         ValueError: If country code is not found
     """
     if country_code not in _COUNTRY_NAMES:
         raise ValueError(f"Unknown country code: {country_code}")
-    
+
     # Return country-specific sources if available, otherwise return empty list
     return _COUNTRY_NEWS_SOURCES.get(country_code, [])
 
@@ -182,4 +182,3 @@ def is_valid_country_code(country_code: str) -> bool:
 def get_all_supported_countries() -> dict[str, str]:
     """Get all supported country codes and names."""
     return _COUNTRY_NAMES.copy()
-

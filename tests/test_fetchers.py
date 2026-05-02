@@ -4,9 +4,12 @@ Tests for the fetchers module.
 
 import pytest
 import responses
-from tidebreak.fetchers import create_session_with_retries, fetch_articles_from_source, fetch_rss_feed
+from tidebreak.fetchers import (
+    create_session_with_retries,
+    fetch_articles_from_source,
+    fetch_rss_feed,
+)
 from tidebreak.exceptions import FetchError, ParseError
-
 
 SAMPLE_RSS_FEED = """<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
@@ -107,6 +110,24 @@ SAMPLE_TH_HTML_MIXED_QUALITY = """
 </html>
 """
 
+SAMPLE_TH_RSS_MIXED_LANGUAGE = """<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+    <channel>
+        <title>Thailand Feed</title>
+        <item>
+            <title>Thailand plans new digital visa process for international tourists</title>
+            <link>https://thethaiger.com/news/national/digital-visa-process</link>
+            <description><![CDATA[<p>The new <strong>digital</strong> process will reduce airport wait times.</p>]]></description>
+        </item>
+        <item>
+            <title>Таиланд обсуждает новые правила туризма</title>
+            <link>https://thethaiger.com/news/russian/non-english-item</link>
+            <description><![CDATA[<p>Это статья не на английском языке.</p>]]></description>
+        </item>
+    </channel>
+</rss>
+"""
+
 
 @responses.activate
 def test_fetch_rss_feed_success():
@@ -117,9 +138,9 @@ def test_fetch_rss_feed_success():
         body=SAMPLE_RSS_FEED,
         status=200,
     )
-    
+
     articles = fetch_rss_feed("https://example.com/feed.rss")
-    
+
     assert len(articles) == 2
     assert articles[0].title == "Article 1"
     assert articles[0].link == "https://example.com/article1"
@@ -134,7 +155,7 @@ def test_fetch_rss_feed_network_error():
         "https://example.com/feed.rss",
         status=500,
     )
-    
+
     with pytest.raises(FetchError):
         fetch_rss_feed("https://example.com/feed.rss")
 
@@ -147,7 +168,7 @@ def test_fetch_rss_feed_not_found():
         "https://example.com/feed.rss",
         status=404,
     )
-    
+
     with pytest.raises(FetchError):
         fetch_rss_feed("https://example.com/feed.rss")
 
@@ -155,7 +176,7 @@ def test_fetch_rss_feed_not_found():
 def test_create_session_with_retries():
     """Test creating a session with retries."""
     session = create_session_with_retries()
-    
+
     assert session is not None
     assert "User-Agent" in session.headers
 
@@ -270,3 +291,20 @@ def test_fetch_articles_from_source_thailand_html_prefers_article_links():
     assert articles[0].title.startswith("Cabinet approves major infrastructure budget")
 
 
+@responses.activate
+def test_fetch_articles_from_source_thailand_rss_filters_non_english_and_strips_html():
+    """Test Thailand RSS output is English-only and plain text."""
+    responses.add(
+        responses.GET,
+        "https://thethaiger.com/feed/",
+        body=SAMPLE_TH_RSS_MIXED_LANGUAGE,
+        status=200,
+        content_type="application/rss+xml",
+    )
+
+    articles = fetch_articles_from_source("https://thethaiger.com/feed/")
+
+    assert len(articles) == 1
+    assert articles[0].title.startswith("Thailand plans new digital visa process")
+    assert "<" not in articles[0].summary
+    assert "strong" not in articles[0].summary.lower()

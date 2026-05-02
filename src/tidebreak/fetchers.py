@@ -43,6 +43,13 @@ _THAILAND_HTML_DOMAINS = {
     "pattayamail.com",
 }
 
+_THAILAND_SOURCE_HOSTS = {
+    "nationthailand.com",
+    "world.thaipbs.or.th",
+    "thethaiger.com",
+    "khaosodenglish.com",
+}
+
 _VIETNAM_NEGATIVE_URL_TOKENS = {
     "/topic",
     "/tag",
@@ -118,31 +125,31 @@ def create_session_with_retries(
 ) -> requests.Session:
     """
     Create a requests session with automatic retries.
-    
+
     Args:
         retries: Number of retries
         backoff_factor: Backoff factor for retries
         timeout: Request timeout in seconds
-        
+
     Returns:
         Configured requests Session
     """
     session = requests.Session()
-    
+
     retry_strategy = Retry(
         total=retries,
         status_forcelist=[429, 500, 502, 503, 504],
         allowed_methods=["HEAD", "GET", "OPTIONS"],
         backoff_factor=backoff_factor,
     )
-    
+
     adapter = HTTPAdapter(max_retries=retry_strategy)
     session.mount("http://", adapter)
     session.mount("https://", adapter)
-    
+
     # Set default User-Agent
     session.headers.update({"User-Agent": DEFAULT_USER_AGENT})
-    
+
     return session
 
 
@@ -153,22 +160,22 @@ def fetch_rss_feed(
 ) -> list[Article]:
     """
     Fetch and parse an RSS feed.
-    
+
     Args:
         feed_url: URL of the RSS feed
         timeout: Request timeout in seconds
         session: Optional requests Session (creates new if not provided)
-        
+
     Returns:
         List of Article objects parsed from the feed
-        
+
     Raises:
         FetchError: If there's an error fetching the feed
         ParseError: If there's an error parsing the feed
     """
     if session is None:
         session = create_session_with_retries(timeout=timeout)
-    
+
     try:
         logger.debug(f"Fetching RSS feed from {feed_url}")
         response = session.get(feed_url, timeout=timeout)
@@ -176,7 +183,7 @@ def fetch_rss_feed(
     except requests.RequestException as e:
         logger.error(f"Failed to fetch feed {feed_url}: {e}")
         raise FetchError(f"Failed to fetch feed from {feed_url}") from e
-    
+
     try:
         articles = _parse_rss_content(response.content, source_url=feed_url)
         logger.debug(f"Successfully parsed {len(articles)} RSS articles from {feed_url}")
@@ -208,25 +215,33 @@ def fetch_articles_from_source(
     content = response.content
 
     try:
+        articles: list[Article]
         if _looks_like_rss(content, content_type):
-            return _parse_rss_content(content, source_url=source_url)
+            articles = _parse_rss_content(content, source_url=source_url)
+            if _is_thailand_source(source_url):
+                articles = _apply_thailand_content_rules(articles)
+            return articles
 
         if _is_vietnam_html_source(source_url):
-            return _parse_vietnam_html_page(
+            articles = _parse_vietnam_html_page(
                 source_url=source_url,
                 html_text=response.text,
                 limit=5,
             )
+            return articles
 
         if _is_thailand_html_source(source_url):
-            return _parse_thailand_html_page(
+            articles = _parse_thailand_html_page(
                 source_url=source_url,
                 html_text=response.text,
                 limit=5,
             )
+            return _apply_thailand_content_rules(articles)
 
         rss_fallback = _parse_rss_content(content, source_url=source_url)
         if rss_fallback:
+            if _is_thailand_source(source_url):
+                return _apply_thailand_content_rules(rss_fallback)
             return rss_fallback
 
         raise ParseError(f"Unsupported non-RSS source: {source_url}")
@@ -252,11 +267,17 @@ def _parse_rss_content(content: bytes, source_url: str) -> list[Article]:
 
     articles: list[Article] = []
     for entry in feed.entries[:5]:
+        raw_title = entry.get("title", "No title")
+        raw_summary = entry.get("summary", entry.get("description", "No summary available"))
+
+        title = _clean_html_text(raw_title) or "No title"
+        summary = _clean_html_text(raw_summary) or "No summary available"
+
         articles.append(
             Article(
-                title=entry.get("title", "No title"),
+                title=title,
                 link=entry.get("link", ""),
-                summary=entry.get("summary", entry.get("description", "No summary available")),
+                summary=summary,
                 source=source_url,
                 published_date=None,
             )
@@ -272,10 +293,12 @@ def _is_vietnam_html_source(source_url: str) -> bool:
 
 
 def _is_thailand_html_source(source_url: str) -> bool:
-    host = urlparse(source_url).netloc.lower()
-    if host.startswith("www."):
-        host = host[4:]
+    host = _normalize_host(source_url)
     return host in _THAILAND_HTML_DOMAINS
+
+
+def _is_thailand_source(source_url: str) -> bool:
+    return _normalize_host(source_url) in _THAILAND_SOURCE_HOSTS
 
 
 def _parse_vietnam_html_page(source_url: str, html_text: str, limit: int = 5) -> list[Article]:
@@ -505,9 +528,50 @@ def _score_thailand_candidate(article: Article, source_url: str) -> int:
     return score
 
 
+def _apply_thailand_content_rules(articles: list[Article]) -> list[Article]:
+    filtered: list[Article] = []
+
+    for article in articles:
+        article.title = _clean_html_text(article.title)
+        article.summary = _clean_html_text(article.summary)
+
+        if not _is_english_like(article.title):
+            continue
+
+        if _contains_forbidden_script(article.title) or _contains_forbidden_script(article.summary):
+            continue
+
+        if not article.summary:
+            article.summary = "No summary available"
+
+        filtered.append(article)
+
+    return filtered
+
+
+def _contains_forbidden_script(value: str) -> bool:
+    return bool(re.search(r"[\u0400-\u04FF\u0E00-\u0E7F]", value or ""))
+
+
+def _is_english_like(value: str) -> bool:
+    text = value or ""
+    letters = re.findall(r"[A-Za-z]", text)
+    all_alpha = re.findall(r"[A-Za-z\u0400-\u04FF\u0E00-\u0E7F]", text)
+    if not all_alpha:
+        return False
+
+    ratio = len(letters) / len(all_alpha)
+    return ratio >= 0.85
+
+
+def _normalize_host(source_url: str) -> str:
+    host = urlparse(source_url).netloc.lower()
+    if host.startswith("www."):
+        host = host[4:]
+    return host
+
+
 def _clean_html_text(value: str) -> str:
     no_tags = re.sub(r"<[^>]+>", " ", value)
     normalized = re.sub(r"\s+", " ", unescape(no_tags)).strip()
     return normalized
-
-

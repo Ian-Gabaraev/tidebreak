@@ -4,6 +4,7 @@ These tests are skipped unless TIDEBREAK_RUN_LIVE_TESTS=1 is set.
 """
 
 import os
+import re
 
 import pytest
 
@@ -22,7 +23,9 @@ def _assert_serialized_item_shape(item: dict) -> None:
     assert isinstance(item["Source Name"], str) and item["Source Name"]
 
 
-@pytest.mark.skipif(not _live_tests_enabled(), reason="Set TIDEBREAK_RUN_LIVE_TESTS=1 to run live tests")
+@pytest.mark.skipif(
+    not _live_tests_enabled(), reason="Set TIDEBREAK_RUN_LIVE_TESTS=1 to run live tests"
+)
 def test_live_vietnam_returns_articles():
     items = get_news_by_country("VN")
 
@@ -31,11 +34,16 @@ def test_live_vietnam_returns_articles():
     _assert_serialized_item_shape(items[0])
 
 
-@pytest.mark.skipif(not _live_tests_enabled(), reason="Set TIDEBREAK_RUN_LIVE_TESTS=1 to run live tests")
+@pytest.mark.skipif(
+    not _live_tests_enabled(), reason="Set TIDEBREAK_RUN_LIVE_TESTS=1 to run live tests"
+)
 def test_live_thailand_returns_articles():
     items = get_news_by_country("TH")
 
     assert isinstance(items, list)
     assert len(items) >= 1
-    _assert_serialized_item_shape(items[0])
-
+    for item in items:
+        _assert_serialized_item_shape(item)
+        text = f"{item['Title']} {item['Summary'] or ''}"
+        assert "<" not in text and ">" not in text
+        assert not re.search(r"[\u0400-\u04FF\u0E00-\u0E7F]", text)

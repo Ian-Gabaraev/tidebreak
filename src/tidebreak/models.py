@@ -10,7 +10,7 @@ from typing import Optional
 @dataclass
 class Article:
     """Represents a single news article."""
-    
+
     title: str
     link: str
     summary: str
@@ -25,7 +25,7 @@ class Article:
 @dataclass
 class CountryAggregationResult:
     """Result of news aggregation for a country."""
-    
+
     country_code: str
     country_name: str
     articles: list[Article] = field(default_factory=list)
@@ -37,7 +37,6 @@ class CountryAggregationResult:
     def to_dict(self) -> dict:
         """Convert result to dictionary with articles serialized."""
         data = asdict(self)
-        data['articles'] = [article.to_dict() for article in self.articles]
-        data['timestamp'] = self.timestamp.isoformat()
+        data["articles"] = [article.to_dict() for article in self.articles]
+        data["timestamp"] = self.timestamp.isoformat()
         return data
-

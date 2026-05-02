@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/flask_api/Dockerfile
+    container_name: tidebreak-flask-api
+    ports:
+      - "8001:8000"
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      SQLITE_PATH: /data/tidebreak_api.db
+      CACHE_TTL_SECONDS: "300"
+    volumes:
+      - ./apps/flask_api/data:/data
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: tidebreak-redis
+
+
+
