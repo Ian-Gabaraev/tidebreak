@@ -38,9 +38,9 @@ def test_get_news_by_country_invalid_code():
 
 
 def test_get_news_by_country_no_sources():
-    """Test country with no configured news sources."""
-    # This would be for a country in the mapping but with no sources
-    result = get_news_by_country("ET")  # Ethiopia has no sources configured
+    """Test country with no configured news sources returns empty list."""
+    with patch("tidebreak.aggregator.get_news_sources", return_value=[]):
+        result = get_news_by_country("US")
 
     assert result == []
 

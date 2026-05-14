@@ -54,12 +54,13 @@ def test_get_news_sources_thailand():
     assert "https://khaosodenglish.com/feed/" in sources
 
 
-def test_get_news_sources_no_sources():
-    """Test getting news sources for country with no configured sources."""
-    # Use a country that exists but has no sources
-    sources = get_news_sources("AO")  # Angola
-    assert isinstance(sources, list)
-    assert len(sources) == 0
+def test_get_news_sources_all_countries_have_sources():
+    """Test that every supported country has at least one news source configured."""
+    countries = get_all_supported_countries()
+    for code in countries:
+        sources = get_news_sources(code)
+        assert isinstance(sources, list)
+        assert len(sources) > 0, f"Country {code} ({countries[code]}) has no news sources"
 
 
 def test_get_news_sources_invalid():

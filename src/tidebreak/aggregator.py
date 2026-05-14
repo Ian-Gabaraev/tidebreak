@@ -13,7 +13,7 @@ from tidebreak.country_mappings import (
     is_valid_country_code,
 )
 from tidebreak.fetchers import create_session_with_retries, fetch_articles_from_source
-from tidebreak.models import Article
+from tidebreak.models import Article, SerializedArticle
 from tidebreak.serializers import serialize_articles
 from tidebreak.exceptions import InvalidCountryError, FetchError
 
@@ -129,7 +129,7 @@ def get_news_by_country(
     num_sources: int = 5,
     articles_per_source: int = 1,
     timeout: int = 10,
-) -> list[dict[str, str | None]]:
+) -> list[SerializedArticle]:
     """
     Get news articles for a specific country.
 

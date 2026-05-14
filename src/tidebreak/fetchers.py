@@ -33,6 +33,8 @@ _VIETNAM_HTML_DOMAINS = {
     "en.vietnamplus.vn",
 }
 
+_ALJAZEERA_WHERE_PREFIX = "https://www.aljazeera.com/where/"
+
 _THAILAND_HTML_DOMAINS = {
     "bangkokpost.com",
     "nationthailand.com",
@@ -224,6 +226,14 @@ def fetch_articles_from_source(
 
         if _is_vietnam_html_source(source_url):
             articles = _parse_vietnam_html_page(
+                source_url=source_url,
+                html_text=response.text,
+                limit=5,
+            )
+            return articles
+
+        if _is_aljazeera_where_source(source_url):
+            articles = _parse_aljazeera_where_page(
                 source_url=source_url,
                 html_text=response.text,
                 limit=5,
@@ -569,6 +579,52 @@ def _normalize_host(source_url: str) -> str:
     if host.startswith("www."):
         host = host[4:]
     return host
+
+
+def _is_aljazeera_where_source(source_url: str) -> bool:
+    return source_url.startswith(_ALJAZEERA_WHERE_PREFIX)
+
+
+def _parse_aljazeera_where_page(source_url: str, html_text: str, limit: int = 5) -> list[Article]:
+    """Parse an Al Jazeera /where/<country>/ listing page for article links."""
+    anchor_pattern = re.compile(
+        r"<a\s+[^>]*href=[\"'](?P<href>/news/[^\"']+)[\"'][^>]*>(?P<title>.*?)</a>",
+        re.IGNORECASE | re.DOTALL,
+    )
+
+    articles: list[Article] = []
+    seen_links: set[str] = set()
+
+    for match in anchor_pattern.finditer(html_text):
+        href = match.group("href").strip()
+        raw_title = match.group("title")
+
+        link = urljoin("https://www.aljazeera.com", href)
+        if link in seen_links:
+            continue
+
+        title = _clean_html_text(raw_title)
+        if len(title) < 15:
+            continue
+
+        articles.append(
+            Article(
+                title=title,
+                link=link,
+                summary="No summary available",
+                source=source_url,
+                published_date=None,
+            )
+        )
+        seen_links.add(link)
+
+        if len(articles) >= limit:
+            break
+
+    if not articles:
+        raise ParseError(f"Could not extract articles from {source_url}")
+
+    return articles
 
 
 def _clean_html_text(value: str) -> str:

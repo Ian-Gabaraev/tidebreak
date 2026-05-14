@@ -1,31 +1,68 @@
-.PHONY: up down build wheel logs shell
+.PHONY: up up-d down build logs shell migrate admin seed psql db-backup reset test collectstatic
 
-## Build cbfx wheel into dist/
-wheel:
+COMPOSE = docker compose -f docker-compose.yml
+WEB     = $(COMPOSE) exec django-api
+
+## Build the tidebreak wheel into dist/ then rebuild Docker images
+build:
 	rm -rf dist/ build/
 	pip wheel . --no-deps -w dist/
+	$(COMPOSE) build
 
-## Start all services
+## Start all services (foreground)
 up:
-	docker compose up
+	$(COMPOSE) up
 
-## Start in detached mode
+## Start all services (detached)
 up-d:
-	docker compose up -d
+	$(COMPOSE) up -d
 
 ## Stop all services
 down:
-	docker compose down
-
-## Rebuild images (rebuilds cbfx wheel first, then Docker images)
-build: wheel
-	docker compose build
+	$(COMPOSE) down
 
 ## Tail all service logs
 logs:
-	docker compose logs -f
+	$(COMPOSE) logs -f
+
+## Django shell inside the web container
+shell:
+	$(WEB) python manage.py shell
+
+## Run Django migrations
+migrations:
+	$(WEB) python manage.py makemigrations
+
+## Run Django migrations
+migrate:
+	$(WEB) python manage.py migrate
+
+## Create a Django superuser for Admin access
+admin:
+	$(WEB) python manage.py createsuperuser
+
+## Seed country source mappings
+seed:
+	$(WEB) python manage.py seed_sources
+
+## Open a psql shell to the database
+psql:
+	$(COMPOSE) exec postgres psql -U tidebreak tidebreak
+
+## Dump the database to a local file (creates backups/ dir if needed)
+db-backup:
+	mkdir -p backups
+	$(COMPOSE) exec -T postgres pg_dump -U tidebreak tidebreak > backups/db-$$(date +%Y%m%d).sql
 
 ## Reset the database and Redis cache (destructive — local dev only)
 reset:
-	docker compose down -v
-	docker compose up -d
+	$(COMPOSE) down -v
+	$(COMPOSE) up -d
+
+## Run Django tests
+test:
+	$(WEB) python manage.py test api
+
+## Collect static files into staticfiles/
+collectstatic:
+	$(WEB) python manage.py collectstatic --noinput

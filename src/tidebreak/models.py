@@ -4,7 +4,20 @@ Data models for the Tidebreak news aggregation package.
 
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TypedDict
+
+# Functional form required because "Source Name" contains a space
+SerializedArticle = TypedDict(
+    "SerializedArticle",
+    {
+        "ID": str,
+        "Title": str,
+        "URL": str,
+        "Source Name": str,
+        "Summary": str | None,
+    },
+)
+"""Typed dictionary representing a serialized article in API responses."""
 
 
 @dataclass
